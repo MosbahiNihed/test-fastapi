@@ -1,10 +1,15 @@
-"""A small stateless FastAPI service: no database, every replica is identical."""
+"""A small FastAPI service backed by PostgreSQL (schema managed by Liquibase)."""
 import os
 import socket
 from datetime import datetime, timezone
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from app.db import get_db
+from app.routers import users
 
 APP_NAME = os.getenv("APP_NAME", "hello-fastapi")
 APP_VERSION = os.getenv("APP_VERSION", "dev")
@@ -12,6 +17,7 @@ GREETING = os.getenv("GREETING", "Hello")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
+app.include_router(users.router)
 
 
 class EchoRequest(BaseModel):
@@ -51,5 +57,10 @@ def healthz():
 
 
 @app.get("/readyz", tags=["health"])
-def readyz():
+def readyz(db: Session = Depends(get_db)):
+    """Ready only when the database is reachable."""
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
+        raise HTTPException(503, "database unavailable")
     return {"status": "ready"}

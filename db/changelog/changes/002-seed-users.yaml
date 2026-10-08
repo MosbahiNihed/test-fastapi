@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-seed-users
+      author: nihed
+      context: dev
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column: {name: email, value: alice@example.com}
+              - column: {name: full_name, value: Alice Example}
+        - insert:
+            tableName: users
+            columns:
+              - column: {name: email, value: bob@example.com}
+              - column: {name: full_name, value: Bob Example}
+      rollback:
+        - delete:
+            tableName: users
+            where: email IN ('alice@example.com', 'bob@example.com')
